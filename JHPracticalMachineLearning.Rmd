@@ -11,21 +11,21 @@ This is a simple demonstration of practical machine learning in partial fulfilme
 
 ## Introduction
 
-
+Human Activity recognition, or HAR, data are often predicted using gyroscopic data mapping body movements. These data can be useful for technological assitance for elder care, exercise science and learning, and digital assistant applications. Machine learning algorithms make the massive data sets viable for application. One such application is weightlifting technique potentially useful as a guide to limit injury or improve performance.
 
 ## Data
 
-
+The data for this model consists of an outcome measure called `classe` consisting of five factors: (A) performed according to correct technique, (B) throwing elbows forward, (C) lifting halfway, (D) lowering halfway, and (E) throwing hips forward. Using gyroscopic measurements tied to arm, belt, and dumbbells consisting of 51 variables in total, predictions were made for the `classe` variable.
 
 ## Random Forest Models
 
-
+Random forest models are ensemble based learning for classifications, regression, and other techniques. Averages over many trees reduce the potentil for overfitting making random forests one of the most accurate methods available for machine learning often placing in top positions in data prediction competitions. For the accuracy, several drawbacks exist such as slower speed, potential overfitting, and loss of interpretability. For the non-linear gyroscpoic data and the immediately functional application, interpretability is not a high concern in this case. 
 
 ## Results and Discussion
 
 ###Training and Validation
 
-For this model the following libraries will be loaded: randomForest, caret, and doParallel.
+For this model the following libraries were used: randomForest, caret, and doParallel. The doParallel package takes advantage of multiple cores and in this case reduced the training time by 1/2. The caret package consolidates many machine learning algorithms into easily digestible syntax.
 
 ```{r loadLibraries, cache=TRUE}
 library(randomForest)
@@ -33,7 +33,7 @@ library(caret)
 library(doParallel)
 ```
 
-Check for and download the file for training and validation. 
+Check for and download the file for training and validation available from the [Groupware@LES](http://groupware.les.inf.puc-rio.br/) projects. 
 
 ```{r getTrainFile, dependson="loadLibraries", cache=TRUE}
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
@@ -48,7 +48,7 @@ if (!file.exists(trainingFile)) {
 }
 ```
 
-Load data.
+Load data:
 
 ```{r loadTrainData, dependson="getTrainFile", cache=TRUE}
 data0 <- read.csv(trainingFile, sep=",", stringsAsFactors=F, 
@@ -58,7 +58,7 @@ dim(data0)
 
 **Preprocessing**
 
-Preprocess the data
+Preprocess the data consisted of the following to reduce the total variables from more than 160 variables to 51 plus the `classe` variable. Most of the reduction was due to unrelated or missing data in the dataset. One variable was taken out due to low variance. 
 
 1. Subset data by type and missingness
     * Only choose the outcome variable `classe` plus any predictors with "arm", "forearm", "belt", or "dumbbell" in the name. These represent the gyroscope data
@@ -94,9 +94,13 @@ Use the validation set to predict out of sample error rates.
 ```{r}
 pred <- predict(modFit,validation); validation$predRight <- pred==validation$classe
 table(pred,validation$classe)
+library(caret)
+confusionMatrix(pred,validation$classe)
 ```
 
 ###Online Test Results
+
+Using the model trained above, modFit, predictions were made using the code below to compare against 20 test cases. The outcome was 19/20 correct yielding 95% accuracy to further validate the model against out of sample data. 
 
 ```
 url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
@@ -109,11 +113,10 @@ if (!file.exists(testingFile)) {
                          "auto")
         download.file(url, destfile=testingFile, method)
 }
-
-#This file is for final testing, not initial validation.
 testing <- read.csv(testingFile, sep=",",stringsAsFactors=F, header=T, na.strings="NA")
-
+answers <- predict(modFit, testing)
 ```
 
 ## References
 
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. [Qualitative Activity Recognition of Weight Lifting Exercises](http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf). Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.

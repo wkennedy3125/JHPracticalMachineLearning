@@ -74,18 +74,21 @@ img {
 </div>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
+<p>Human Activity recognition, or HAR, data are often predicted using gyroscopic data mapping body movements. These data can be useful for technological assitance for elder care, exercise science and learning, and digital assistant applications. Machine learning algorithms make the massive data sets viable for application. One such application is weightlifting technique potentially useful as a guide to limit injury or improve performance.</p>
 </div>
 <div id="data" class="section level2">
 <h2>Data</h2>
+<p>The data for this model consists of an outcome measure called <code>classe</code> consisting of five factors: (A) performed according to correct technique, (B) throwing elbows forward, (C) lifting halfway, (D) lowering halfway, and (E) throwing hips forward. Using gyroscopic measurements tied to arm, belt, and dumbbells consisting of 51 variables in total, predictions were made for the <code>classe</code> variable.</p>
 </div>
 <div id="random-forest-models" class="section level2">
 <h2>Random Forest Models</h2>
+<p>Random forest models are ensemble based learning for classifications, regression, and other techniques. Averages over many trees reduce the potentil for overfitting making random forests one of the most accurate methods available for machine learning often placing in top positions in data prediction competitions. For the accuracy, several drawbacks exist such as slower speed, potential overfitting, and loss of interpretability. For the non-linear gyroscpoic data and the immediately functional application, interpretability is not a high concern in this case.</p>
 </div>
 <div id="results-and-discussion" class="section level2">
 <h2>Results and Discussion</h2>
 <div id="training-and-validation" class="section level3">
 <h3>Training and Validation</h3>
-<p>For this model the following libraries will be loaded: randomForest, caret, and doParallel.</p>
+<p>For this model the following libraries were used: randomForest, caret, and doParallel. The doParallel package takes advantage of multiple cores and in this case reduced the training time by 1/2. The caret package consolidates many machine learning algorithms into easily digestible syntax.</p>
 <pre class="r"><code>library(randomForest)</code></pre>
 <pre><code>## randomForest 4.6-10
 ## Type rfNews() to see new features/changes/bug fixes.</code></pre>
@@ -96,7 +99,7 @@ img {
 <pre><code>## Loading required package: foreach
 ## Loading required package: iterators
 ## Loading required package: parallel</code></pre>
-<p>Check for and download the file for training and validation.</p>
+<p>Check for and download the file for training and validation available from the <a href="http://groupware.les.inf.puc-rio.br/"><a href="mailto:Groupware@LES">Groupware@LES</a></a> projects.</p>
 <pre class="r"><code>url &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
 trainingFile &lt;- &quot;pml-training.csv&quot;
 if (!file.exists(trainingFile)) {
@@ -107,13 +110,13 @@ if (!file.exists(trainingFile)) {
                          &quot;auto&quot;)
         download.file(url, destfile=trainingFile, method)
 }</code></pre>
-<p>Load data.</p>
+<p>Load data:</p>
 <pre class="r"><code>data0 &lt;- read.csv(trainingFile, sep=&quot;,&quot;, stringsAsFactors=F, 
                   header=T, na.strings=c(&quot;NA&quot;,&quot;&quot;,&quot;#DIV/0!&quot;))
 dim(data0)</code></pre>
 <pre><code>## [1] 19622   160</code></pre>
 <p><strong>Preprocessing</strong></p>
-<p>Preprocess the data</p>
+<p>Preprocess the data consisted of the following to reduce the total variables from more than 160 variables to 51 plus the <code>classe</code> variable. Most of the reduction was due to unrelated or missing data in the dataset. One variable was taken out due to low variance.</p>
 <ol style="list-style-type: decimal">
 <li>Subset data by type and missingness
 <ul>
@@ -159,18 +162,57 @@ modFit</code></pre>
 ## Accuracy was used to select the optimal model using  the largest value.
 ## The final value used for the model was mtry = 26.</code></pre>
 <p>Use the validation set to predict out of sample error rates.</p>
-<pre class="r"><code>pred &lt;- predict(modFit,validation); validation$predRight &lt;- pred==validation$classe
-table(pred,validation$classe)</code></pre>
+<pre class="r"><code>pred &lt;- predict(modFit,validation); validation$predRight &lt;- pred==validation$classe</code></pre>
+<pre><code>## Loading required package: randomForest
+## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre class="r"><code>table(pred,validation$classe)</code></pre>
 <pre><code>##     
 ## pred    A    B    C    D    E
-##    A 4925  167    1    8    6
-##    B   38 3076  192   20   82
+##    A 4925  168    1    8    6
+##    B   38 3075  192   20   82
 ##    C   36  145 2859  136   61
 ##    D   23   27   27 2722   54
 ##    E    0    2    0    8 3043</code></pre>
+<pre class="r"><code>library(caret)</code></pre>
+<pre><code>## Loading required package: lattice
+## Loading required package: ggplot2</code></pre>
+<pre class="r"><code>confusionMatrix(pred,validation$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 4925  168    1    8    6
+##          B   38 3075  192   20   82
+##          C   36  145 2859  136   61
+##          D   23   27   27 2722   54
+##          E    0    2    0    8 3043
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9414          
+##                  95% CI : (0.9379, 0.9449)
+##     No Information Rate : 0.2844          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9259          
+##  Mcnemar's Test P-Value : &lt; 2.2e-16       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9807   0.8999   0.9285   0.9406   0.9375
+## Specificity            0.9855   0.9767   0.9741   0.9911   0.9993
+## Pos Pred Value         0.9642   0.9026   0.8832   0.9541   0.9967
+## Neg Pred Value         0.9923   0.9760   0.9847   0.9884   0.9861
+## Prevalence             0.2844   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2789   0.1741   0.1619   0.1542   0.1723
+## Detection Prevalence   0.2893   0.1929   0.1833   0.1616   0.1729
+## Balanced Accuracy      0.9831   0.9383   0.9513   0.9658   0.9684</code></pre>
 </div>
 <div id="online-test-results" class="section level3">
 <h3>Online Test Results</h3>
+<p>Using the model trained above, modFit, predictions were made using the code below to compare against 20 test cases. The outcome was 19/20 correct yielding 95% accuracy to further validate the model against out of sample data.</p>
 <pre><code>url &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;
 testingFile &lt;- &quot;pml-testing.csv&quot;
 if (!file.exists(testingFile)) {
@@ -181,14 +223,13 @@ if (!file.exists(testingFile)) {
                          &quot;auto&quot;)
         download.file(url, destfile=testingFile, method)
 }
-
-#This file is for final testing, not initial validation.
 testing &lt;- read.csv(testingFile, sep=&quot;,&quot;,stringsAsFactors=F, header=T, na.strings=&quot;NA&quot;)
-</code></pre>
+answers &lt;- predict(modFit, testing)</code></pre>
 </div>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
+<p>Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. <a href="http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf">Qualitative Activity Recognition of Weight Lifting Exercises</a>. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human ’13) . Stuttgart, Germany: ACM SIGCHI, 2013.</p>
 </div>
 
 
