@@ -1,0 +1,23 @@
+---
+title: "Practical Machine Learning"
+author: "William Kennedy"
+date: "July 26, 2015"
+output: html_document
+---
+
+## Abstract
+
+## Introduction
+
+## Data
+
+## Random Forest Models
+
+## Results and Discussion
+
+*Training and Validation*
+
+*Online Test Results*
+
+## References
+
