@@ -7,17 +7,113 @@ output: html_document
 
 ## Abstract
 
+This is a simple demonstration of practical machine learning in partial fulfilment of the Johns Hopkins Data Science Specialization on Coursera. Data from Velloso, et al. on Human Activity Recognition (HAR) were used to predict five classes of weightlifting activities. A random forest algorithm was used and resulted in an average of 95% accuracy on validation data. A small test on 20 subjects result in 19/20 correct on the first round and the last correct on a second pass suggesting 95% accuracy for out of sample accuracy. 
+
 ## Introduction
+
+
 
 ## Data
 
+
+
 ## Random Forest Models
+
+
 
 ## Results and Discussion
 
-*Training and Validation*
+###Training and Validation
 
-*Online Test Results*
+For this model the following libraries will be loaded: randomForest, caret, and doParallel.
+
+```{r loadLibraries, cache=TRUE}
+library(randomForest)
+library(caret)
+library(doParallel)
+```
+
+Check for and download the file for training and validation. 
+
+```{r getTrainFile, dependson="loadLibraries", cache=TRUE}
+url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+trainingFile <- "pml-training.csv"
+if (!file.exists(trainingFile)) {
+        method <- switch(Sys.info()[['sysname']],
+                         "Windows" = "internal",
+                         "Darwin" = "curl",
+                         "Linux" = "wget",
+                         "auto")
+        download.file(url, destfile=trainingFile, method)
+}
+```
+
+Load data.
+
+```{r loadTrainData, dependson="getTrainFile", cache=TRUE}
+data0 <- read.csv(trainingFile, sep=",", stringsAsFactors=F, 
+                  header=T, na.strings=c("NA","","#DIV/0!"))
+dim(data0)
+```
+
+**Preprocessing**
+
+Preprocess the data
+
+1. Subset data by type and missingness
+    * Only choose the outcome variable `classe` plus any predictors with "arm", "forearm", "belt", or "dumbbell" in the name. These represent the gyroscope data
+    * Set `classe` to a factor variable
+    * Find percent missing and keep only those below 30% (Note: most are either 0% or >90%)
+1. Drop variables with low variances (close to zero)
+
+```{r preprocessTrainData, dependson="loadTrainData", cache=TRUE}
+sub_names <- names(data0)[grepl("arm|belt|dumbbell|classe",names(data0))]
+tmp_data <- data0[,sub_names]
+pct_missing <- apply(apply(tmp_data,2,is.na),2,mean)
+sub_data <- tmp_data[,pct_missing < .3]
+sub_data$classe <- factor(sub_data$classe)
+sub_data <- sub_data[,apply(sub_data[,1:52],2,sd) > .1]
+dim(sub_data)
+```
+
+Run the random forest algorithm.
+
+```{r rfTrainData, dependson="preprocessTrainData", cache=TRUE}
+inTrain <- createDataPartition(y=sub_data$classe,
+                              p=0.1, list=FALSE)
+training <- sub_data[inTrain,]
+validation <- sub_data[-inTrain,]
+set.seed(32343)
+registerDoParallel(cores=2)
+modFit <- train(classe ~ .,data=training,method="rf",prox=TRUE)
+modFit
+```
+
+Use the validation set to predict out of sample error rates.  
+
+```{r}
+pred <- predict(modFit,validation); validation$predRight <- pred==validation$classe
+table(pred,validation$classe)
+```
+
+###Online Test Results
+
+```
+url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+testingFile <- "pml-testing.csv"
+if (!file.exists(testingFile)) {
+        method <- switch(Sys.info()[['sysname']],
+                         "Windows" = "internal",
+                         "Darwin" = "curl",
+                         "Linux" = "wget",
+                         "auto")
+        download.file(url, destfile=testingFile, method)
+}
+
+#This file is for final testing, not initial validation.
+testing <- read.csv(testingFile, sep=",",stringsAsFactors=F, header=T, na.strings="NA")
+
+```
 
 ## References
 

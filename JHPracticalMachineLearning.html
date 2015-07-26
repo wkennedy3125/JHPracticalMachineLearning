@@ -70,6 +70,7 @@ img {
 
 <div id="abstract" class="section level2">
 <h2>Abstract</h2>
+<p>This is a simple demonstration of practical machine learning in partial fulfilment of the Johns Hopkins Data Science Specialization on Coursera. Data from Velloso, et al. on Human Activity Recognition (HAR) were used to predict five classes of weightlifting activities. A random forest algorithm was used and resulted in an average of 95% accuracy on validation data. A small test on 20 subjects result in 19/20 correct on the first round and the last correct on a second pass suggesting 95% accuracy for out of sample accuracy.</p>
 </div>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
@@ -82,8 +83,109 @@ img {
 </div>
 <div id="results-and-discussion" class="section level2">
 <h2>Results and Discussion</h2>
-<p><em>Training and Validation</em></p>
-<p><em>Online Test Results</em></p>
+<div id="training-and-validation" class="section level3">
+<h3>Training and Validation</h3>
+<p>For this model the following libraries will be loaded: randomForest, caret, and doParallel.</p>
+<pre class="r"><code>library(randomForest)</code></pre>
+<pre><code>## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre class="r"><code>library(caret)</code></pre>
+<pre><code>## Loading required package: lattice
+## Loading required package: ggplot2</code></pre>
+<pre class="r"><code>library(doParallel)</code></pre>
+<pre><code>## Loading required package: foreach
+## Loading required package: iterators
+## Loading required package: parallel</code></pre>
+<p>Check for and download the file for training and validation.</p>
+<pre class="r"><code>url &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
+trainingFile &lt;- &quot;pml-training.csv&quot;
+if (!file.exists(trainingFile)) {
+        method &lt;- switch(Sys.info()[['sysname']],
+                         &quot;Windows&quot; = &quot;internal&quot;,
+                         &quot;Darwin&quot; = &quot;curl&quot;,
+                         &quot;Linux&quot; = &quot;wget&quot;,
+                         &quot;auto&quot;)
+        download.file(url, destfile=trainingFile, method)
+}</code></pre>
+<p>Load data.</p>
+<pre class="r"><code>data0 &lt;- read.csv(trainingFile, sep=&quot;,&quot;, stringsAsFactors=F, 
+                  header=T, na.strings=c(&quot;NA&quot;,&quot;&quot;,&quot;#DIV/0!&quot;))
+dim(data0)</code></pre>
+<pre><code>## [1] 19622   160</code></pre>
+<p><strong>Preprocessing</strong></p>
+<p>Preprocess the data</p>
+<ol style="list-style-type: decimal">
+<li>Subset data by type and missingness
+<ul>
+<li>Only choose the outcome variable <code>classe</code> plus any predictors with “arm”, “forearm”, “belt”, or “dumbbell” in the name. These represent the gyroscope data</li>
+<li>Set <code>classe</code> to a factor variable</li>
+<li>Find percent missing and keep only those below 30% (Note: most are either 0% or &gt;90%)</li>
+</ul></li>
+<li>Drop variables with low variances (close to zero)</li>
+</ol>
+<pre class="r"><code>sub_names &lt;- names(data0)[grepl(&quot;arm|belt|dumbbell|classe&quot;,names(data0))]
+tmp_data &lt;- data0[,sub_names]
+pct_missing &lt;- apply(apply(tmp_data,2,is.na),2,mean)
+sub_data &lt;- tmp_data[,pct_missing &lt; .3]
+sub_data$classe &lt;- factor(sub_data$classe)
+sub_data &lt;- sub_data[,apply(sub_data[,1:52],2,sd) &gt; .1]
+dim(sub_data)</code></pre>
+<pre><code>## [1] 19622    52</code></pre>
+<p>Run the random forest algorithm.</p>
+<pre class="r"><code>inTrain &lt;- createDataPartition(y=sub_data$classe,
+                              p=0.1, list=FALSE)
+training &lt;- sub_data[inTrain,]
+validation &lt;- sub_data[-inTrain,]
+set.seed(32343)
+registerDoParallel(cores=2)
+modFit &lt;- train(classe ~ .,data=training,method=&quot;rf&quot;,prox=TRUE)
+modFit</code></pre>
+<pre><code>## Random Forest 
+## 
+## 1964 samples
+##   51 predictor
+##    5 classes: 'A', 'B', 'C', 'D', 'E' 
+## 
+## No pre-processing
+## Resampling: Bootstrapped (25 reps) 
+## Summary of sample sizes: 1964, 1964, 1964, 1964, 1964, 1964, ... 
+## Resampling results across tuning parameters:
+## 
+##   mtry  Accuracy   Kappa      Accuracy SD  Kappa SD  
+##    2    0.9216805  0.9008133  0.01231971   0.01543760
+##   26    0.9223459  0.9016509  0.01386470   0.01737134
+##   51    0.9127231  0.8895001  0.01369642   0.01708299
+## 
+## Accuracy was used to select the optimal model using  the largest value.
+## The final value used for the model was mtry = 26.</code></pre>
+<p>Use the validation set to predict out of sample error rates.</p>
+<pre class="r"><code>pred &lt;- predict(modFit,validation); validation$predRight &lt;- pred==validation$classe
+table(pred,validation$classe)</code></pre>
+<pre><code>##     
+## pred    A    B    C    D    E
+##    A 4925  167    1    8    6
+##    B   38 3076  192   20   82
+##    C   36  145 2859  136   61
+##    D   23   27   27 2722   54
+##    E    0    2    0    8 3043</code></pre>
+</div>
+<div id="online-test-results" class="section level3">
+<h3>Online Test Results</h3>
+<pre><code>url &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;
+testingFile &lt;- &quot;pml-testing.csv&quot;
+if (!file.exists(testingFile)) {
+        method &lt;- switch(Sys.info()[['sysname']],
+                         &quot;Windows&quot; = &quot;internal&quot;,
+                         &quot;Darwin&quot; = &quot;curl&quot;,
+                         &quot;Linux&quot; = &quot;wget&quot;,
+                         &quot;auto&quot;)
+        download.file(url, destfile=testingFile, method)
+}
+
+#This file is for final testing, not initial validation.
+testing &lt;- read.csv(testingFile, sep=&quot;,&quot;,stringsAsFactors=F, header=T, na.strings=&quot;NA&quot;)
+</code></pre>
+</div>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
